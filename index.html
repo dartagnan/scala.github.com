@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+  <head>
+    <title> Scala - Unofficial Scala reference and Faq</title>
+    <link rel="stylesheet" href="scala_ref/assets/style.css" type="text/css" media="screen" />
+  </head>
+  <body>
+    <div id="main">
+      <h2>Unofficial Scala reference and documentation</h2>
+<h3>Warning :: This is a draft and mainly a test of templating system.</h3>
+<ul>
+	<li>Type and List<br />
+<pre class="boxed">val a = Array(1,2,3) //works</pre><br />
+Nice, but I want Array of Bytes<br />
+<pre class="boxed">val b = Array[Byte](1,2,3) //won&#8217;t work </pre><br />
+Won&#8217;t work because of type signature <code>Array[T &lt;: AnyRef]</code>. Okay, but this will work:<br />
+<pre class="boxed">val b: Array[Byte] = Array(1,23)</pre></li>
+</ul>
+<ul>
+	<li>Pattern matching and null:<br />
+<code>_</code> is the &#8220;wildcard&#8221; pattern in scala and hence, you will see plenty of code:</li>
+</ul>
+<pre class="multiline">
+foo match {
+  case "catz" =&gt; println("got catz")
+  case "kitten" =&gt; println("got kittens")
+  case _ =&gt; println("got some crap")
+}
+</pre>
+<p>beware through wildcard &#8220;_&#8221;, won&#8217;t handle null and hence must be handled<br />
+separately.</p>
+<ul>
+	<li>Assignment returns &#8220;Unit&#8221; type:</li>
+</ul>
+<pre class="multiline">
+scala&gt; import scala.collection.mutable.Map
+scala&gt; val a = Map("foo" -&gt; "bar")
+res0: some map
+scala&gt; a("lolz") = "catz" //returns unit
+</pre>
+<p>But for immutable types:</p>
+<pre class="multiline">
+scala&gt; import scala.collection.immutable.Map
+scala&gt; val a = Map("foo" -&gt; "bar")
+scala&gt; a("lolz") = "catz"
+res0: scala.collection.immutable.Map[java.lang.String,java.lang.String] = \
+      Map(hello -&gt; World, lolz -&gt; catz)
+</pre>
+<p>this can lead to quite confusion because immutable types are in default namespace and your code can act weird.</p>
+<ul>
+	<li>Case classes and override statement:</li>
+</ul>
+<p>Following code works:</p>
+<pre class="multiline">
+class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+
+class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+<p>But if your throw case classes in the picture, following code won&#8217;t work:</p>
+<pre class="multiline">
+case class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+
+case class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+<p>you need to override constructor args. So this will work:</p>
+<pre class="multiline">
+case class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+case class Bar(override val ageList: List[Int]) extends Foo(ageList)
+</pre>
+<p>Or, if you can spare with your base class not being a case class, you won&#8217;t need override:</p>
+<pre class="multiline">
+class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+case class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+<ul>
+	<li>Boxing and unboxing:</li>
+</ul>
+<p>Usually when you put something in a Map its type is preserved, but this<br />
+unboxing happens at runtime and compiler is not aware of that and hence<br />
+it will throw type errors, if you are trying to execute methods on an object<br />
+which has been removed from a Map of its super type.</p>
+<ul>
+	<li>Type inference, parameterized types and null:</li>
+</ul>
+<p>Its a odd ball. But following code won&#8217;t work.</p>
+<pre class="multiline">
+def apply[T &lt;: InnerRequest](key: String): T = {
+ try {
+   requestMap(key).asInstanceOf[T]
+ } catch { case _ =&gt; null }
+}
+</pre>
+<p>However, you remove explicit return type (T) and it should work:</p>
+<pre class="multiline">
+def apply[T &lt;: InnerRequest](key: String) = {
+  try {
+    requestMap(key).asInstanceOf[T]
+  } catch { case _ =&gt; null }
+}
+</pre>
+<p>Okay, mister but what if I don&#8217;t like type inference on return types and I want<br />
+to explicitly specify type signature? I have no idea.</p>
+<ul>
+	<li>Using Options and Some :</li>
+</ul>
+<p>To construct an Empty Option:</p>
+<pre class="multiline">
+val t: Option[Int] = None //works
+val t: Some[Int] = None  //won't work
+val t: Option[Int] = Option(10) //won't work
+val t: Option[Int] = Some(10) //works
+val t: Some[Int] = Some(10) //works
+</pre>
+<p>The key is to specify data type as Option[T] everywhere and hence scala way is:</p>
+<pre class="multiline">
+val t: Option[Int] = None
+val t: Option[Int] = Some(10)
+</pre>
+<ul>
+	<li>call by name, partial functions and anonymous functions :</li>
+</ul>
+<p>They are an odd ball with similar syntax but wildly different usage.<br />
+Lets define a function,which takes a anonymous function as argument:</p>
+<pre class="multiline">
+// takes an anonymous function as argument which takes empty parameter
+// and returns Unit
+def inboxWithin(x: Int)(func: () =&gt; Unit) =&gt; {
+}
+</pre>
+<p>You can call above function by:</p>
+<pre class="multiline">
+inboxWithin(5) (() =&gt; {
+  // some shit here
+})
+</pre>
+<p>That <code>"()"</code> is required and makes quite ugly blocks I guess. Enter call-by-name:</p>
+<pre class="multiline">
+def inboxWithin(x: Int)(func: =&gt; Unit) {
+}</pre>
+<p>You can call this function by:</p>
+<pre class="multiline">
+inboxWithin(5) {
+  // some shit here
+}
+</pre>
+<p>Much cleaner. But the catch is you can&#8217;t store a parameter which has been called by name.Folks often use:</p>
+<pre class="boxed"> def inboxWithin(x: Int)(func: =&gt; Unit) = someCrap(x)(() =&gt; func) </pre>
+<p>Which is not same.</p>
+<p>Enter partial functions. They have many more usage, but:</p>
+<pre class="multiline">
+def inboxWithin(x: Int)(func: PartialFunction[Any,Any]) = {
+  // do whatever you want with func
+}
+</pre>
+<p>Which can be again called as:</p>
+<pre class="multiline">
+inboxWithin(5) {
+  // Some shit here
+}
+</pre>
+    </div>
+    <div id="sidebar">
+      <h2> Documentation </h2>
+      <ul>
+        <li><a href="/faq"> FAQ </a></li>
+        <li><a href="/ref"> Reference</a></li>
+      </ul>
+    </div>
+  </body>
+</html>
