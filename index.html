@@ -88,27 +88,6 @@ unboxing happens at runtime and compiler is not aware of that and hence<br />
 it will throw type errors, if you are trying to execute methods on an object<br />
 which has been removed from a Map of its super type.</p>
 <ul>
-	<li>Type inference, parameterized types and null:</li>
-</ul>
-<p>Its a odd ball. But following code won&#8217;t work.</p>
-<pre class="multiline">
-def apply[T &lt;: InnerRequest](key: String): T = {
- try {
-   requestMap(key).asInstanceOf[T]
- } catch { case _ =&gt; null }
-}
-</pre>
-<p>However, you remove explicit return type (T) and it should work:</p>
-<pre class="multiline">
-def apply[T &lt;: InnerRequest](key: String) = {
-  try {
-    requestMap(key).asInstanceOf[T]
-  } catch { case _ =&gt; null }
-}
-</pre>
-<p>Okay, mister but what if I don&#8217;t like type inference on return types and I want<br />
-to explicitly specify type signature? I have no idea.</p>
-<ul>
 	<li>Using Options and Some :</li>
 </ul>
 <p>To construct an Empty Option:</p>
