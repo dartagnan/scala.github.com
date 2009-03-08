@@ -1,4 +1,4 @@
 # Built-in
-
+filters_pre: [ "redcloth" ]
 # Custom 
-title: Home
+title: "Unofficial Scala reference and Faq"

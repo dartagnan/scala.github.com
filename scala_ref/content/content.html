@@ -1,8 +1,193 @@
-<h1>A Brand New nanoc Site</h1>
-<p>You&#8217;ve just created a new nanoc site. The page you are looking at right now is the home page for your site (and it&#8217;s probably the only page).</p>
-<p>To get started, consider replacing this default homepage with your own customized homepage. Some pointers on how to do so:</p>
-<ul>
-  <li><strong>Change this page&#8217;s content</strong> by editing &#8220;content.txt&#8221; file in the &#8220;content&#8221; directory. This is the actual page content, and therefore doesn&#8217;t include the header, sidebar or style information (those are part of the layout).</li>
-  <li><strong>Change the layout</strong>, which is the &#8220;default.txt&#8221; file in the &#8220;layouts/default&#8221; directory, and create something unique (and hopefully less bland).</li>
-</ul>
-<p>If you need any help with customizing your nanoc web site, be sure to check out the documentation (see sidebar), and be sure to subscribe to the discussion group (also see sidebar). Enjoy!</p>
+h2. Unofficial Scala reference and documentation
+
+* Type and List
+<pre class="boxed">val a = Array(1,2,3) //works</pre>
+Nice, but I want Array of Bytes
+<pre class="boxed">val b = Array[Byte](1,2,3) //won't work </pre>
+Won't work because of type signature @Array[T <: AnyRef]@. Okay, but this will work:
+<pre class="boxed">val b: Array[Byte] = Array(1,23)</pre>
+
+* Pattern matching and null:
+@_@ is the "wildcard" pattern in scala and hence, you will see plenty of code:
+
+<pre class="multiline">
+foo match {
+  case "catz" => println("got catz")
+  case "kitten" => println("got kittens")
+  case _ => println("got some crap")
+}
+</pre>
+
+beware through wildcard "_", won't handle null and hence must be handled
+separately.
+
+* Assignment returns "Unit" type:
+
+<pre class="multiline">
+scala> import scala.collection.mutable.Map
+scala> val a = Map("foo" -> "bar")
+res0: some map
+scala> a("lolz") = "catz" //returns unit
+</pre>
+
+But for immutable types:
+
+<pre class="multiline">
+scala> import scala.collection.immutable.Map
+scala> val a = Map("foo" -> "bar")
+scala> a("lolz") = "catz"
+res0: scala.collection.immutable.Map[java.lang.String,java.lang.String] = \
+      Map(hello -> World, lolz -> catz)
+</pre>
+
+this can lead to quite confusion because immutable types are in default namespace and your code can act weird.
+
+* case classes and override statement:
+
+Following code works:
+
+<pre class="multiline">
+class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+
+class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+
+But if your throw case classes in the picture, following code won't work:
+
+<pre class="multiline">
+case class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+
+case class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+
+you need to override constructor args. So this will work:
+
+<pre class="multiline">
+case class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+case class Bar(override val ageList: List[Int]) extends Foo(ageList)
+</pre>
+
+Or, if you can spare with your base class not being a case class, you won't need override:
+
+<pre class="multiline">
+class Foo(ageList: List[Int]){
+  val avg = (ageList.foldLeft(0) (_ + _)) / ageList.length
+}
+case class Bar(ageList: List[Int]) extends Foo(ageList)
+</pre>
+
+
+* Boxing and unboxing:
+
+Usually when you put something in a Map its type is preserved, but this
+unboxing happens at runtime and compiler is not aware of that and hence
+it will throw type errors, if you are trying to execute methods on an object
+which has been removed from a Map of its super type.
+
+
+* Type inference, parameterized types and null:
+
+Its a odd ball. But following code won't work.
+
+<pre class="multiline">
+def apply[T <: InnerRequest](key: String): T = {
+ try {
+   requestMap(key).asInstanceOf[T]
+ } catch { case _ => null }
+}
+</pre>
+
+However, you remove explicit return type (T) and it should work:
+
+<pre class="multiline">
+def apply[T <: InnerRequest](key: String) = {
+  try {
+    requestMap(key).asInstanceOf[T]
+  } catch { case _ => null }
+}
+</pre>
+
+Okay, mister but what if I don't like type inference on return types and I want
+to explicitly specify type signature? I have no idea.
+
+* Using Options and Some :
+
+To construct an Empty Option:
+
+<pre class="multiline">
+val t: Option[Int] = None //works
+val t: Some[Int] = None  //won't work
+val t: Option[Int] = Option(10) //won't work
+val t: Option[Int] = Some(10) //works
+val t: Some[Int] = Some(10) //works
+</pre>
+
+The key is to specify data type as Option[T] everywhere and hence scala way is:
+
+<pre class="multiline">
+val t: Option[Int] = None
+val t: Option[Int] = Some(10)
+</pre>
+
+* call by name, partial functions and anonymous functions :
+
+They are an odd ball with similar syntax but wildly different usage.
+Lets define a function,which takes a anonymous function as argument:
+
+<pre class="multiline">
+// takes an anonymous function as argument which takes empty parameter
+// and returns Unit
+def inboxWithin(x: Int)(func: () => Unit) => {
+}
+</pre>
+
+You can call above function by:
+
+<pre class="multiline">
+inboxWithin(5) (() => {
+  // some shit here
+})
+</pre>
+
+That @"()"@ is required and makes quite ugly blocks I guess. Enter call-by-name:
+
+<pre class="multiline">
+def inboxWithin(x: Int)(func: => Unit) {
+}</pre>
+
+You can call this function by:
+
+<pre class="multiline">
+inboxWithin(5) {
+  // some shit here
+}
+</pre>
+
+Much cleaner. But the catch is you can't store a parameter which has been called by name.Folks often use:
+
+<pre class="boxed"> def inboxWithin(x: Int)(func: => Unit) = someCrap(x)(() => func) </pre>
+
+Which is not same.
+
+Enter partial functions. They have many more usage, but:
+
+<pre class="multiline">
+def inboxWithin(x: Int)(func: PartialFunction[Any,Any]) = {
+  // do whatever you want with func
+}
+</pre>
+
+Which can be again called as:
+
+<pre class="multiline">
+inboxWithin(5) {
+  // Some shit here
+}
+</pre>
+
